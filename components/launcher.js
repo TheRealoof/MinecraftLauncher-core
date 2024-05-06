@@ -68,6 +68,18 @@ class MCLCore extends EventEmitter {
 
       const args = []
 
+      const jvm = await this.handler.getJVM();
+      jvm.push("-XX:HeapDumpPath=MojangTricksIntelDriversForPerformance_javaw.exe_minecraft.exe.heapdump")
+      jvm.push("-Xss1M");
+      jvm.push("-Xmx2G");
+      jvm.push("-XX:+UnlockExperimentalVMOptions");
+      jvm.push("-XX:+UseG1GC");
+      jvm.push("-XX:G1NewSizePercent=20");
+      jvm.push("-XX:G1ReservePercent=20");
+      jvm.push("-XX:MaxGCPauseMillis=50");
+      jvm.push("-XX:G1HeapRegionSize=32M");
+
+      /*
       let jvm = [
         '-XX:-UseAdaptiveSizePolicy',
         '-XX:-OmitStackTraceInFastThrow',
@@ -77,32 +89,14 @@ class MCLCore extends EventEmitter {
         `-Xmx${this.handler.getMemory()[0]}`,
         `-Xms${this.handler.getMemory()[1]}`
       ]
+
       if (this.handler.getOS() === 'osx') {
         if (parseInt(versionFile.id.split('.')[1]) > 12) jvm.push(await this.handler.getJVM())
       } else jvm.push(await this.handler.getJVM())
-
       if (this.options.customArgs) jvm = jvm.concat(this.options.customArgs)
       if (this.options.overrides.logj4ConfigurationFile) {
         jvm.push(`-Dlog4j.configurationFile=${path.resolve(this.options.overrides.logj4ConfigurationFile)}`)
-      }
-      // https://help.minecraft.net/hc/en-us/articles/4416199399693-Security-Vulnerability-in-Minecraft-Java-Edition
-      if (parseInt(versionFile.id.split('.')[1]) === 18 && !parseInt(versionFile.id.split('.')[2])) jvm.push('-Dlog4j2.formatMsgNoLookups=true')
-      if (parseInt(versionFile.id.split('.')[1]) === 17) jvm.push('-Dlog4j2.formatMsgNoLookups=true')
-      if (parseInt(versionFile.id.split('.')[1]) < 17) {
-        if (!jvm.find(arg => arg.includes('Dlog4j.configurationFile'))) {
-          const configPath = path.resolve(this.options.overrides.cwd || this.options.root)
-          const intVersion = parseInt(versionFile.id.split('.')[1])
-          if (intVersion >= 12) {
-            await this.handler.downloadAsync('https://launcher.mojang.com/v1/objects/02937d122c86ce73319ef9975b58896fc1b491d1/log4j2_112-116.xml',
-              configPath, 'log4j2_112-116.xml', true, 'log4j')
-            jvm.push('-Dlog4j.configurationFile=log4j2_112-116.xml')
-          } else if (intVersion >= 7) {
-            await this.handler.downloadAsync('https://launcher.mojang.com/v1/objects/dd2b723346a8dcd48e7f4d245f6bf09e98db9696/log4j2_17-111.xml',
-              configPath, 'log4j2_17-111.xml', true, 'log4j')
-            jvm.push('-Dlog4j.configurationFile=log4j2_17-111.xml')
-          }
-        }
-      }
+      }*/
 
       const classes = this.options.overrides.classes || this.handler.cleanUp(await this.handler.getClasses(modifyJson))
       const classPaths = ['-cp']
@@ -123,7 +117,7 @@ class MCLCore extends EventEmitter {
       // Forge -> Custom -> Vanilla
       const launchOptions = await this.handler.getLaunchOptions(modifyJson)
 
-      const launchArguments = args.concat(jvm, classPaths, launchOptions)
+      const launchArguments = args.concat(jvm, [file.mainClass], launchOptions)
       this.emit('arguments', launchArguments)
       this.emit('debug', `[MCLC]: Launching with arguments ${launchArguments.join(' ')}`)
 

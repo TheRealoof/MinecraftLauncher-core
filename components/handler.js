@@ -674,12 +674,63 @@ class Handler {
   }
 
   async getJVM () {
+    if (!this.version.arguments || !this.version.arguments.jvm) {
+      return [];
+    }
+
     const opts = {
       windows: '-XX:HeapDumpPath=MojangTricksIntelDriversForPerformance_javaw.exe_minecraft.exe.heapdump',
       osx: '-XstartOnFirstThread',
       linux: '-Xss1M'
     }
-    return opts[this.getOS()]
+
+    let jvm = [];
+
+    const jvmArguments = this.version.arguments.jvm
+
+    for (let jvmArgument of jvmArguments) {
+      console.log(jvmArgument);
+      if (typeof jvmArgument === 'object') {
+        let value = jvmArgument.value;
+      } else if (typeof jvmArgument === 'string') {
+        jvm.push(jvmArgument);
+      }
+    }
+
+    let classes = await this.getClasses();
+    classes.push("C:\\Users\\Clement\\AppData\\Roaming\\.minecraft\\versions\\1.20.1-forge-47.2.30\\1.20.1-forge-47.2.30.jar");
+    let cp = classes.join(";")
+
+    const fields = {
+      'natives_directory': await this.getNatives(),
+      'launcher_name': 'jean-minecraft-launcher',
+      'launcher_version': '0.1',
+      'classpath': cp,
+      'version_name': '1.20.1-forge-47.2.30',
+      'library_directory': 'C:\\Users\\Clement\\AppData\\Roaming\\.minecraft\\libraries',
+      'classpath_separator': ';',
+    }
+
+    jvm = this.remplacerPlaceholders(jvm, fields);
+
+    this.client.emit('debug', '[MCLC]: Set JVM')
+    return jvm;
+  }
+
+  remplacerPlaceholders(tableau, variables) {
+    return tableau.map(element => {
+      if (typeof element === 'string') {
+        // Recherche de tous les placeholders ${valeur} et remplacement par leur vraie valeur
+        return element.replace(/\${(\w+)}/g, (match, p1) => {
+          if (variables[p1]) {
+            return variables[p1];
+          } else {
+            throw new Error(`Aucune valeur trouvée pour le placeholder ${match}`);
+          }
+        });
+      }
+      return element;
+    });
   }
 
   isLegacy () {
